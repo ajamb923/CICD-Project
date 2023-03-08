@@ -27,7 +27,7 @@ curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s http
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin/
 
-#Need to manually do for some reason, OR add to Provisioner file and run remotely
+#Need to manually do for some reason, OR add to Provisioner file and run remotely, SHOULD BE DONE AS UBUNTU USER, NOT ROOT.
 sudo usermod -aG docker $USER && newgrp docker
 minikube start --driver=docker
 

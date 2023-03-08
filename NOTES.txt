@@ -35,24 +35,25 @@ Pre-requisites:
 Jenkins: finish setup Manually (Find a way to automate this part also)
 Install Plugin Public over SSH:
 
-Steps:
+Steps: Starting from Jenkins Dashboard
 --> Manage Jenkins
 --> Manage plugins 
---> available 
---> type in = ssh agent 
---> select SSH Agent --> Install without restart 
+--> Available plugins
+--> Type in = ssh agent 
+--> Select SSH Agent 
+--> Install without restart 
 --> Scroll to the bottom & Click Restart Jenkins when installation is complete and no jobs are running
 --> Login
 
 
 
-Push Dockerfile to git repository
+- Push Dockerfile to git repository (Any)
 
 
 
 Jenkins pipeline:
 1. Create New item 
-2. Name = Pipeline-demo 
+2. Name = Pipeline-Demo 
 3. Click pipeline then okay
 4. Enter into pipeline script:
 
@@ -66,13 +67,16 @@ then apply and save
 
 -- You couldve also clicked on 'Pipeline Syntax' and provide necessary info.
 -- sample step = git: Git 
--- Generate and add below stage section
+-- Add repository name
+-- Generate and add stage section
+
 
 5. Click Build Now 
 6. SSH into jenkins server and see if the Dockerfile is there now.
     - Check /var/lib/jenkins/workspace/
+
 Configure automatic build 
-7. In jenkins dashboard, clikc the pipeline, then Click Configure 
+7. In jenkins dashboard, click the pipeline, then Click Configure 
 8. Select GitHub hook trigger for GITScm polling
 9. Apply and save
 10. Go to github repository
@@ -83,16 +87,16 @@ Configure automatic build
     http://44.213.120.10:8080/github-webhook/
 15. Change content type to 'application/json'
 16. Get the secret from jenkins     
-    - In jenkins dashboard click the pipeline
+    - In jenkins dashboard
     - click people, click the user, click Configure
     - Under API Token, click Add new Token, Click Generate 
     - Copy token and paste it in secret
-17. Click add webhook 
+17. Click Add webhook (Check to make sure it was successful, refresh the screen)
 
 18. Go and edit Dockerfile, add 22 to Expose
 19. git add .
 20. git commit -m "added port 22" 
-21. git push origin master 
+21. git push origin master (Check pipeline to see if new build was triggered)
 
 
 
@@ -100,31 +104,32 @@ Configure automatic build
 
 
 #Send Dockerfile to Ansible server using SSH Agent
-1. In jenkins, click the pipeline
+1. In Jenkins, click the Pipeline
 2. Click Configure
 3. Scroll down to script 
 4. You will be adding another stage 
-5. stage('sending doccker file to Ansible server over ssh'){
+5. stage('Sending Dockerfile to Ansible server over ssh'){
 
 }
 6. Click Pipeline syntax 
 7. search for 'sshagent: SSH Agent'
 8. Click Add, jenkins 
 9. kind = SSH Username with private key
-10. id = ansible
-11. description = ansible
-12. username = ubuntu 
+10. ID = ansible
+11. Description = ansible
+12. Username = ubuntu 
 13. click Enter directly 
-14. add private key credentials from key pair 
+14. Add private key credentials from key pair 
 15. click add
 16. click generate pipeline script 
-17. copy output and add to the script 
-18. stage('sending doccker file to Ansible server over ssh'){
-        sshagent(['ansible']) { 
-          sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.60.97'                  #this will allow jenkins to ssh into ansible server, make sure you use private_ip
-          sh 'scp /var/lib/jenkins/workspace/Pipelilne_demo/* ubuntu@172.31.60.97:/home/ubuntu'   #this will copy everything from jenkins pipeline folder to ansible home 
+17. copy output and add to the script (you will be replacing //some block with the below details, you can also find the syntax from clicking the ? on the pipeline syntax page)
+18. node {
+        stage('sending doccker file to Ansible server over ssh'){
+            sshagent(['ansible']) { 
+              sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.60.97'                               #this will allow jenkins to ssh into ansible server, make sure you use private_ip of ansible server
+              sh 'scp /var/lib/jenkins/workspace/Pipeline-Demo/* ubuntu@172.31.60.97:/home/ubuntu'   #this will copy everything from jenkins pipeline folder to ansible home. Make sure spelling is correct.
+            }
         }
-      }
     }
 
 19. Should now look like this:
@@ -136,15 +141,14 @@ node {
     stage('sending docker file to Ansible server over ssh'){
         sshagent(['ansible']) {
          sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.60.97'
-         sh 'scp /var/lib/jenkins/workspace/Pipelilne-demo/* ubuntu@172.31.60.97:/home/ubuntu' 
+         sh 'scp /var/lib/jenkins/workspace/Pipeline-Demo/* ubuntu@172.31.60.97:/home/ubuntu' 
         } 
     }
 }
 
 20. Apply and Save 
-21. Click on green check and bottom left corner to start another build 
-22. it should be successful 
-23. check ansible server /home/ubuntu directory to see if dockerfile is there. 
+21. Click Build Now OR Push to github to trigger a new build
+22. Check ansible server /home/ubuntu directory to see if Dockerfile is there. 
 
 
 
