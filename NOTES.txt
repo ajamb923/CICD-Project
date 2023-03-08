@@ -1,0 +1,151 @@
+Pre-requisites:
+    Git
+    Linux
+    Jenkins
+    Docker
+    Dockerhub Account
+    Ansible
+    Kubernetes (Deployments & Services)
+
+3 ec2 Instances:
+    1. Jenkins (default-jre + jenkins)
+        t2.micro
+        ubuntu server 18.04
+        10 Gib - storage
+        Security Group - ALL TRAFFIC
+        name = Jenkins-Server
+
+    2. Ansible (python + ansible + docker)
+        t2.micro
+        ubuntu server 18.04
+        10 Gib - storage
+        Security Group - ALL TRAFFIC
+        name = Ansible-Server
+
+    3. Webapp (kubernetes cluster) --> (docker + minikube)
+        t2.medium
+        ubuntu server 18.04         #use ubuntu server 22.04 instead
+        10 Gib - storage
+        Security Group - ALL TRAFFIC
+        name = WebApp-Server
+
+
+
+
+Jenkins: finish setup Manually (Find a way to automate this part also)
+Install Plugin Public over SSH:
+
+Steps:
+--> Manage Jenkins
+--> Manage plugins 
+--> available 
+--> type in = ssh agent 
+--> select SSH Agent --> Install without restart 
+--> Scroll to the bottom & Click Restart Jenkins when installation is complete and no jobs are running
+--> Login
+
+
+
+Push Dockerfile to git repository
+
+
+
+Jenkins pipeline:
+1. Create New item 
+2. Name = Pipeline-demo 
+3. Click pipeline then okay
+4. Enter into pipeline script:
+
+node {
+    stage('Git chekcout'){
+        git 'https://github.com/ajamb923/Kubernetes_Project.git'
+    }
+}
+
+then apply and save 
+
+-- You couldve also clicked on 'Pipeline Syntax' and provide necessary info.
+-- sample step = git: Git 
+-- Generate and add below stage section
+
+5. Click Build Now 
+6. SSH into jenkins server and see if the Dockerfile is there now.
+    - Check /var/lib/jenkins/workspace/
+Configure automatic build 
+7. In jenkins dashboard, clikc the pipeline, then Click Configure 
+8. Select GitHub hook trigger for GITScm polling
+9. Apply and save
+10. Go to github repository
+11. Click on settings
+12. On the left, click Webhooks
+13. Add Webhook
+14. Under Payload URL, enter jenkins url/github-webhook/ : 
+    http://44.213.120.10:8080/github-webhook/
+15. Change content type to 'application/json'
+16. Get the secret from jenkins     
+    - In jenkins dashboard click the pipeline
+    - click people, click the user, click Configure
+    - Under API Token, click Add new Token, Click Generate 
+    - Copy token and paste it in secret
+17. Click add webhook 
+
+18. Go and edit Dockerfile, add 22 to Expose
+19. git add .
+20. git commit -m "added port 22" 
+21. git push origin master 
+
+
+
+
+
+
+#Send Dockerfile to Ansible server using SSH Agent
+1. In jenkins, click the pipeline
+2. Click Configure
+3. Scroll down to script 
+4. You will be adding another stage 
+5. stage('sending doccker file to Ansible server over ssh'){
+
+}
+6. Click Pipeline syntax 
+7. search for 'sshagent: SSH Agent'
+8. Click Add, jenkins 
+9. kind = SSH Username with private key
+10. id = ansible
+11. description = ansible
+12. username = ubuntu 
+13. click Enter directly 
+14. add private key credentials from key pair 
+15. click add
+16. click generate pipeline script 
+17. copy output and add to the script 
+18. stage('sending doccker file to Ansible server over ssh'){
+        sshagent(['ansible']) { 
+          sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.60.97'                  #this will allow jenkins to ssh into ansible server, make sure you use private_ip
+          sh 'scp /var/lib/jenkins/workspace/Pipelilne_demo/* ubuntu@172.31.60.97:/home/ubuntu'   #this will copy everything from jenkins pipeline folder to ansible home 
+        }
+      }
+    }
+
+19. Should now look like this:
+node {
+    stage('Git chekcout'){
+        git 'https://github.com/ajamb923/Kubernetes_Project.git'
+    }
+    
+    stage('sending docker file to Ansible server over ssh'){
+        sshagent(['ansible']) {
+         sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.60.97'
+         sh 'scp /var/lib/jenkins/workspace/Pipelilne-demo/* ubuntu@172.31.60.97:/home/ubuntu' 
+        } 
+    }
+}
+
+20. Apply and Save 
+21. Click on green check and bottom left corner to start another build 
+22. it should be successful 
+23. check ansible server /home/ubuntu directory to see if dockerfile is there. 
+
+
+
+
